@@ -1,0 +1,4 @@
+name = "EasyArgs"
+uuid = "52150622-7061-44b1-af48-278af9fea15b"
+authors = ["mtsch <matijacufar@gmail.com>"]
+version = "0.1.0"
