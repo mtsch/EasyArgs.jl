@@ -5,7 +5,7 @@ export get_arg, ARG_DICT, check_unused_args
 const ARG_DICT = Dict{Any,String}()
 const USED_ARGS = Set{Any}()
 
-if isdefined(Base, :Experimental) && isdefined(Base.Experimental, Symbol("@optlevel"))
+if isdefined(Base, :Experimental) && isdefined(Base.Experimental, Symbol("@compiler_options"))
     @eval Base.Experimental.@compiler_options compile=min optimize=0 infer=false
 end
 
