@@ -1,8 +1,9 @@
 module EasyArgs
 
-export get_arg, ARG_DICT
+export get_arg, ARG_DICT, check_unused_args
 
 const ARG_DICT = Dict{Any,String}()
+const USED_ARGS = Set{Any}()
 
 if isdefined(Base, :Experimental) && isdefined(Base.Experimental, Symbol("@optlevel"))
     @eval Base.Experimental.@optlevel 1
@@ -46,20 +47,13 @@ end
 Get the command line argument `arg`. If `arg` was not given, the `default` value is returned.
 If the argument exists, its value is parsed to be the same type as `default`.
 """
-function get_arg(key, default::S) where {S<:AbstractString}
-    if haskey(ARG_DICT, key)
-        return S(ARG_DICT[key])
-    else
-        return default
-    end
-end
 function get_arg(key, default::Bool)
     if haskey(ARG_DICT, key)
-        value = ARG_DICT[key]
-        if value == ""
+        if ARG_DICT[key] == ""
+            push!(USED_ARGS, key)
             return true
         else
-            return parse(Bool, value)
+            return _get_arg(key, Bool)
         end
     else
         return default
@@ -67,9 +61,44 @@ function get_arg(key, default::Bool)
 end
 function get_arg(key, default::T) where {T}
     if haskey(ARG_DICT, key)
-        return parse(T, ARG_DICT[key])
+        return _get_arg(key, T)
     else
         return default
+    end
+end
+function get_arg(key, T::Type)
+    if !haskey(ARG_DICT, key)
+        if key isa Int
+            throw(ArgumentError("required positional argument $key not given"))
+        else
+            throw(ArgumentError("required argument `$key` not given"))
+        end
+    else
+        return _get_arg(key, T)
+    end
+end
+
+function _get_arg(key, T::Type)
+    push!(USED_ARGS, key)
+    if T <: AbstractString
+        return T(ARG_DICT[key])
+    else
+        return parse(T, ARG_DICT[key])
+    end
+end
+
+function check_unused_args(; error=false)
+    unused = Pair[]
+    for (k, v) in ARG_DICT
+        (k ∉ USED_ARGS) && push!(unused, k => v)
+    end
+    if !isempty(unused)
+        msg = "the following arguments were given, but not used: "
+        if error
+            Base.error(msg, "`", join(unused, "`, `"), "`")
+        else
+            @warn msg unused
+        end
     end
 end
 
