@@ -6,14 +6,14 @@ const ARG_DICT = Dict{Any,String}()
 const USED_ARGS = Set{Any}()
 
 if isdefined(Base, :Experimental) && isdefined(Base.Experimental, Symbol("@optlevel"))
-    @eval Base.Experimental.@optlevel 1
+    @eval Base.Experimental.@compiler_options compile=min optimize=0 infer=false
 end
 
 function __init__()
-    parse_args!(ARG_DICT, ARGS)
+    _parse_args!(ARG_DICT, ARGS)
 end
 
-function parse_args!(output, input)
+function _parse_args!(output, input)
     position = 1
     for curr in input
         if startswith(curr, "--")
@@ -21,24 +21,25 @@ function parse_args!(output, input)
             sp = split(curr[3:end], '='; limit=2)
             name = sp[1]
             value = get(sp, 2, "")
-            put_arg!(output, name, value)
+            _put_arg!(output, name, value)
         elseif startswith(curr, "-")
             name = curr[2:end]
-            put_arg!(output, name[1:1], name[nextind(name, 1):end])
+            _put_arg!(output, name[1:1], name[nextind(name, 1):end])
         else
             # Positional argument
-            put_arg!(output, position, curr)
+            _put_arg!(output, position, curr)
             position += 1
         end
     end
     return output
 end
 
-function put_arg!(dict, key, value)
+function _put_arg!(dict, key, value)
     if haskey(dict, key)
-        @warn "Duplicate argument $key"
+        @warn "Duplicate argument \"$key\". Only the first occurenece will be used"
+    else
+        dict[key] = value
     end
-    dict[key] = value
 end
 
 """
